@@ -17,6 +17,7 @@ import {
 } from './services/firebaseService';
 import { extractContactInfo } from './services/geminiService';
 import { initContactsGapiClient, initContactsGisClient, authenticateAndSaveToGoogleContacts } from './services/googleContactsService';
+import { initGapiClient as initSheetsGapiClient, initGisClient as initSheetsGisClient, authenticateAndSaveToSheet } from './services/googleSheetsService';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -48,8 +49,10 @@ const App: React.FC = () => {
       try {
         await initContactsGapiClient();
         initContactsGisClient();
+        await initSheetsGapiClient();
+        initSheetsGisClient();
       } catch (err) {
-        console.error("Google Contacts init failed:", err);
+        console.error("Google init failed:", err);
       }
     };
     startSession();
@@ -127,13 +130,27 @@ const App: React.FC = () => {
     const processingTime = Date.now() - startTimeRef.current;
 
     try {
+      // First save to Firebase
       await saveContactToFirebase(data, user.uid, processingTime);
-      setAppState(AppState.SUCCESS);
-      setTimeout(() => setAppState(AppState.IDLE), 3000);
+      
+      // Then save to Google Sheets (this will prompt the Google Auth popup if not already authenticated)
+      authenticateAndSaveToSheet(
+        data,
+        () => {
+          setIsSaving(false);
+          setAppState(AppState.SUCCESS);
+          setTimeout(() => setAppState(AppState.IDLE), 3000);
+        },
+        (err) => {
+          setIsSaving(false);
+          setError('Failed to save to Google Sheets: ' + err.message);
+          setAppState(AppState.ERROR);
+        }
+      );
     } catch (err: any) {
       setError('Connection error: Failed to sync with cloud database.');
-    } finally {
       setIsSaving(false);
+      setAppState(AppState.ERROR);
     }
   };
 

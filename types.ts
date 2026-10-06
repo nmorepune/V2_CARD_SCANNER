@@ -13,6 +13,7 @@ export interface ContactData {
   timestamp?: any;
   createdAt?: any;
   processingTimeMs?: number; 
+  customFields?: Record<string, string>;
 }
 
 export enum AppState {

@@ -103,7 +103,10 @@ export const saveToGoogleContacts = async (data: ContactData): Promise<void> => 
       ],
       addresses: [
         ...(data.address ? [{ streetAddress: data.address }] : [])
-      ]
+      ],
+      userDefined: data.customFields 
+        ? Object.entries(data.customFields).map(([key, value]) => ({ key, value }))
+        : []
     };
 
     await window.gapi.client.people.people.createContact({

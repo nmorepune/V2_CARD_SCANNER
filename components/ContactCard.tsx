@@ -12,6 +12,11 @@ interface ContactCardProps {
 
 export const ContactCard: React.FC<ContactCardProps> = ({ data, onSave, onSaveToGoogleContacts, onCancel, isSaving }) => {
   const [formData, setFormData] = useState<ContactData>(data);
+  const [customFields, setCustomFields] = useState<Array<{key: string, value: string}>>(
+    data.customFields 
+      ? Object.entries(data.customFields).map(([key, value]) => ({ key, value })) 
+      : []
+  );
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -23,6 +28,30 @@ export const ContactCard: React.FC<ContactCardProps> = ({ data, onSave, onSaveTo
       const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(formData.address)}`;
       window.open(url, '_blank');
     }
+  };
+
+  const handleCustomFieldChange = (index: number, field: 'key' | 'value', val: string) => {
+    const newFields = [...customFields];
+    newFields[index][field] = val;
+    setCustomFields(newFields);
+  };
+
+  const addCustomField = () => {
+    setCustomFields([...customFields, { key: '', value: '' }]);
+  };
+
+  const removeCustomField = (index: number) => {
+    const newFields = [...customFields];
+    newFields.splice(index, 1);
+    setCustomFields(newFields);
+  };
+
+  const prepareDataForSave = (): ContactData => {
+    const customFieldsRecord: Record<string, string> = {};
+    customFields.forEach(f => {
+      if (f.key.trim()) customFieldsRecord[f.key.trim()] = f.value;
+    });
+    return { ...formData, customFields: customFieldsRecord };
   };
 
   // HIGH CONTRAST INPUTS
@@ -156,6 +185,53 @@ export const ContactCard: React.FC<ContactCardProps> = ({ data, onSave, onSaveTo
             placeholder="Full Office Address"
           />
         </div>
+
+        {/* Custom Fields Section */}
+        <div className="col-span-1 md:col-span-2 mt-4 pt-4 border-t border-gray-200">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-sm font-bold text-[#003366] uppercase tracking-wider">Additional Fields</h3>
+            <button 
+              type="button" 
+              onClick={addCustomField}
+              className="text-xs bg-blue-50 text-blue-700 hover:bg-blue-100 px-3 py-1.5 rounded-md font-bold transition-colors flex items-center gap-1"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+              Add Field
+            </button>
+          </div>
+          
+          <div className="space-y-3">
+            {customFields.length === 0 && (
+              <p className="text-xs text-gray-500 italic">No additional fields added.</p>
+            )}
+            {customFields.map((field, index) => (
+              <div key={index} className="flex flex-col sm:flex-row gap-3 items-start sm:items-center bg-white p-3 rounded-lg border border-gray-100 shadow-sm">
+                <input
+                  type="text"
+                  value={field.key}
+                  onChange={(e) => handleCustomFieldChange(index, 'key', e.target.value)}
+                  placeholder="Field Name (e.g. Notes)"
+                  className={`${inputClasses} sm:w-1/3 py-2 text-sm`}
+                />
+                <input
+                  type="text"
+                  value={field.value}
+                  onChange={(e) => handleCustomFieldChange(index, 'value', e.target.value)}
+                  placeholder="Value"
+                  className={`${inputClasses} flex-grow py-2 text-sm`}
+                />
+                <button
+                  type="button"
+                  onClick={() => removeCustomField(index)}
+                  className="text-red-500 hover:bg-red-50 p-2 rounded-md transition-colors self-end sm:self-auto"
+                  title="Remove Field"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       <div className="bg-white px-6 py-4 sm:px-8 sm:py-6 flex flex-col sm:flex-row justify-end gap-3 sm:gap-4 border-t border-gray-200">
@@ -169,7 +245,7 @@ export const ContactCard: React.FC<ContactCardProps> = ({ data, onSave, onSaveTo
         {onSaveToGoogleContacts && (
           <Button 
             variant="outline" 
-            onClick={() => onSaveToGoogleContacts(formData)} 
+            onClick={() => onSaveToGoogleContacts(prepareDataForSave())} 
             isLoading={isSaving}
             className="w-full sm:w-auto px-6 py-2.5 text-base border-blue-500 text-blue-600 hover:bg-blue-50 font-bold order-2 sm:order-2"
           >
@@ -178,7 +254,7 @@ export const ContactCard: React.FC<ContactCardProps> = ({ data, onSave, onSaveTo
         )}
         <Button 
           variant="primary" 
-          onClick={() => onSave(formData)} 
+          onClick={() => onSave(prepareDataForSave())} 
           isLoading={isSaving}
           className="w-full sm:w-auto px-8 py-2.5 text-base shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all font-bold order-1 sm:order-3"
           style={{ backgroundColor: '#003366' }}

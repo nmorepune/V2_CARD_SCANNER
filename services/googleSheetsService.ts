@@ -45,7 +45,7 @@ export const initGapiClient = async (): Promise<void> => {
   });
 };
 
-export const initGisClient = (onTokenReceived: (tokenResponse: any) => void): void => {
+export const initGisClient = (): void => {
   // Defensive check for Google Identity Services script
   if(!window.google || !window.google.accounts) {
     console.warn("Google Identity Services script not loaded.");
@@ -64,16 +64,7 @@ export const initGisClient = (onTokenReceived: (tokenResponse: any) => void): vo
     tokenClient = window.google.accounts.oauth2.initTokenClient({
       client_id: CLIENT_ID,
       scope: SCOPES,
-      callback: async (resp: any) => {
-        if (resp.error) {
-           console.error("OAuth Error:", resp);
-           if (resp.error.includes("redirect_uri_mismatch") || resp.error.includes("origin_mismatch")) {
-             alert(`Google Connection Failed.\n\nError: ${resp.error}\n\nFix: Go to Google Cloud Console > Credentials > OAuth Client.\nAdd this URI to "Authorized Javascript Origins":\n${window.location.origin}`);
-           }
-           return;
-        }
-        onTokenReceived(resp);
-      },
+      callback: (resp: any) => {}, // Will be overridden
       error_callback: (err: any) => {
          console.error("GIS Error Callback:", err);
          alert("Popup closed or connection failed.");
@@ -83,6 +74,29 @@ export const initGisClient = (onTokenReceived: (tokenResponse: any) => void): vo
   } catch (err) {
     console.error("Failed to initialize Token Client", err);
   }
+};
+
+export const authenticateAndSaveToSheet = (data: ContactData, onSuccess: () => void, onError: (err: any) => void) => {
+  if (!tokenClient) {
+    onError(new Error("Google Sign-In not initialized."));
+    return;
+  }
+  
+  tokenClient.callback = async (resp: any) => {
+    if (resp.error) {
+       console.error("OAuth Error:", resp);
+       onError(resp.error);
+       return;
+    }
+    try {
+      await saveToSheet(data);
+      onSuccess();
+    } catch (e) {
+      onError(e);
+    }
+  };
+  
+  tokenClient.requestAccessToken({ prompt: '' });
 };
 
 export const requestAccessToken = () => {
