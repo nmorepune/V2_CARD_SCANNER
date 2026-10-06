@@ -5,11 +5,12 @@ import { Button } from './Button';
 interface ContactCardProps {
   data: ContactData;
   onSave: (data: ContactData) => void;
+  onSaveToGoogleContacts?: (data: ContactData) => void;
   onCancel: () => void;
   isSaving: boolean;
 }
 
-export const ContactCard: React.FC<ContactCardProps> = ({ data, onSave, onCancel, isSaving }) => {
+export const ContactCard: React.FC<ContactCardProps> = ({ data, onSave, onSaveToGoogleContacts, onCancel, isSaving }) => {
   const [formData, setFormData] = useState<ContactData>(data);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -161,15 +162,25 @@ export const ContactCard: React.FC<ContactCardProps> = ({ data, onSave, onCancel
         <Button 
           variant="outline" 
           onClick={onCancel}
-          className="w-full sm:w-auto px-6 py-2.5 text-base border-gray-300 text-gray-700 hover:bg-gray-100 font-medium order-2 sm:order-1"
+          className="w-full sm:w-auto px-6 py-2.5 text-base border-gray-300 text-gray-700 hover:bg-gray-100 font-medium order-3 sm:order-1"
         >
           Discard
         </Button>
+        {onSaveToGoogleContacts && (
+          <Button 
+            variant="outline" 
+            onClick={() => onSaveToGoogleContacts(formData)} 
+            isLoading={isSaving}
+            className="w-full sm:w-auto px-6 py-2.5 text-base border-blue-500 text-blue-600 hover:bg-blue-50 font-bold order-2 sm:order-2"
+          >
+            Save to Google Contacts
+          </Button>
+        )}
         <Button 
           variant="primary" 
           onClick={() => onSave(formData)} 
           isLoading={isSaving}
-          className="w-full sm:w-auto px-8 py-2.5 text-base shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all font-bold order-1 sm:order-2"
+          className="w-full sm:w-auto px-8 py-2.5 text-base shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all font-bold order-1 sm:order-3"
           style={{ backgroundColor: '#003366' }}
         >
           Upload Data

@@ -16,6 +16,7 @@ import {
   initStudioSession
 } from './services/firebaseService';
 import { extractContactInfo } from './services/geminiService';
+import { initContactsGapiClient, initContactsGisClient, authenticateAndSaveToGoogleContacts } from './services/googleContactsService';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -43,7 +44,16 @@ const App: React.FC = () => {
         setIsInitializing(false);
       }
     };
+    const initGoogle = async () => {
+      try {
+        await initContactsGapiClient();
+        initContactsGisClient();
+      } catch (err) {
+        console.error("Google Contacts init failed:", err);
+      }
+    };
     startSession();
+    initGoogle();
   }, []);
 
   useEffect(() => {
@@ -125,6 +135,23 @@ const App: React.FC = () => {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleSaveToGoogleContacts = (data: ContactData) => {
+    setIsSaving(true);
+    authenticateAndSaveToGoogleContacts(
+      data,
+      () => {
+        setIsSaving(false);
+        setAppState(AppState.SUCCESS);
+        setTimeout(() => setAppState(AppState.IDLE), 3000);
+      },
+      (err) => {
+        setIsSaving(false);
+        setError('Failed to save to Google Contacts: ' + err.message);
+        setAppState(AppState.ERROR);
+      }
+    );
   };
 
   if (isInitializing) {
@@ -239,6 +266,7 @@ const App: React.FC = () => {
           <ContactCard 
             data={scannedData} 
             onSave={handleSave} 
+            onSaveToGoogleContacts={handleSaveToGoogleContacts}
             onCancel={() => setAppState(AppState.IDLE)}
             isSaving={isSaving}
           />
